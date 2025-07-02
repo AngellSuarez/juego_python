@@ -1,147 +1,87 @@
 import streamlit as st
 import numpy as np
-from PIL import Image
 import cv2
-import tensorflow as tf
+import joblib
+from PIL import Image
 from textblob import TextBlob
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
-from utils import preprocess_face
+from utils.preprocessing import preprocess_face
 
 # Configuración de la página
-st.set_page_config(page_title="Juego de Emociones con IA", page_icon="😊", layout="wide")
-
-# Cargar modelo de emociones faciales
-@st.cache_resource
-def load_emotion_model():
-    return tf.keras.models.load_model("emotion_model.h5")
-
-# Cargar analizador de sentimientos
-@st.cache_resource
-def load_sentiment_analyzers():
-    return SentimentIntensityAnalyzer()
-
-# Etiquetas de emociones según el modelo
-emotion_labels = ['Angry', 'Disgust', 'Fear', 'Happy', 'Sad', 'Surprise', 'Neutral']
+st.set_page_config(page_title="Juego de Emociones IA", layout="wide")
 
 # Cargar modelos
+@st.cache_resource
+def load_sentiment_analyzer():
+    return SentimentIntensityAnalyzer()
+
+@st.cache_resource
+def load_emotion_model():
+    return joblib.load("model/emotion_model.pkl")
+
+vader = load_sentiment_analyzer()
 emotion_model = load_emotion_model()
-vader = load_sentiment_analyzers()
 
-# Estado inicial del juego
-if 'score' not in st.session_state:
-    st.session_state.score = 0
-    st.session_state.level = 1
-    st.session_state.challenges_completed = 0
-    st.session_state.target_emotion = 'happy'
-    st.session_state.user_name = ''
+# Mapeo de clases simuladas (ajusta según tu dataset real)
+emotion_labels = {
+    0: "angry",
+    1: "disgust",
+    2: "fear",
+    3: "happy",
+    4: "sad",
+    5: "surprise",
+    6: "neutral"
+}
 
-# Función para analizar texto
-def analyze_emotion_from_text(text):
-    vader_scores = vader.polarity_scores(text)
-    blob = TextBlob(text)
-    polarity = blob.sentiment.polarity
+# App
+st.title("😄 Juego de Emociones (Texto + Imagen)")
+st.markdown("Esta app analiza emociones desde texto o una imagen de tu rostro")
 
-    if vader_scores['compound'] >= 0.5:
-        return 'Happy', vader_scores['compound']
-    elif vader_scores['compound'] <= -0.5:
-        return 'Sad', abs(vader_scores['compound'])
-    elif polarity > 0.3:
-        return 'Happy', polarity
-    elif polarity < -0.3:
-        return 'Sad', abs(polarity)
-    else:
-        return 'Neutral', 0.5
+modo = st.sidebar.radio("Selecciona modo", ["Texto", "Cámara"])
 
-# Función para analizar imagen
-def analyze_emotion_from_image(image):
-    try:
+if modo == "Texto":
+    st.subheader("📝 Análisis de Emoción por Texto")
+    texto = st.text_area("Escribe algo emocional...")
+    if st.button("Analizar Texto"):
+        vader_score = vader.polarity_scores(texto)
+        blob = TextBlob(texto)
+
+        st.write("### Resultado VADER")
+        st.json(vader_score)
+
+        st.write("### Resultado TextBlob")
+        st.write(f"Polarity: {blob.sentiment.polarity}")
+        st.write(f"Subjectivity: {blob.sentiment.subjectivity}")
+
+        # Estimación simple de emoción
+        if vader_score['compound'] >= 0.5:
+            st.success("Parece una emoción positiva 😊")
+        elif vader_score['compound'] <= -0.5:
+            st.error("Emoción negativa detectada 😠")
+        else:
+            st.info("Emoción neutral o mixta 😐")
+
+elif modo == "Cámara":
+    st.subheader("📷 Analiza tu Emoción Facial")
+    img_data = st.camera_input("Toma una foto con tu expresión emocional")
+
+    if img_data is not None:
+        image = Image.open(img_data).convert("RGB")
+        st.image(image, caption="Imagen capturada", width=300)
+
+        # Preprocesar rostro
         face = preprocess_face(image)
-        predictions = emotion_model.predict(np.array([face]), verbose=0)
-        predicted_class = emotion_labels[np.argmax(predictions)]
-        confidence = float(np.max(predictions))
-        return predicted_class, confidence
-    except Exception as e:
-        st.error(f"Error al procesar la imagen: {e}")
-        return "Unknown", 0.0
+        if face is not None:
+            st.image(face, caption="Rostro detectado", width=150)
 
-# Interfaz
-st.title("🎮 Juego de Emociones con IA")
-st.write("Un juego interactivo que usa IA local para reconocer emociones por texto o imagen")
+            face_flat = face.flatten().reshape(1, -1)
+            prediction = emotion_model.predict(face_flat)[0]
+            proba = emotion_model.predict_proba(face_flat)[0]
 
-# Configuración del usuario
-with st.sidebar:
-    st.header("Configuración")
-    if not st.session_state.user_name:
-        name = st.text_input("Tu nombre:")
-        if name:
-            st.session_state.user_name = name
-            st.rerun()
-    st.write(f"Hola, **{st.session_state.user_name}**")
+            emotion = emotion_labels.get(prediction, "unknown")
+            confidence = proba[prediction]
 
-    if st.button("🔄 Reiniciar juego"):
-        st.session_state.score = 0
-        st.session_state.level = 1
-        st.session_state.challenges_completed = 0
-        st.rerun()
-
-    st.write(f"📊 **Puntos:** {st.session_state.score}")
-    st.write(f"🏅 **Nivel:** {st.session_state.level}")
-    st.write(f"🎯 **Desafíos completados:** {st.session_state.challenges_completed}")
-
-# Generar emoción objetivo
-def generate_challenge():
-    emociones = ['Happy', 'Sad', 'Angry', 'Surprise', 'Fear', 'Neutral']
-    return np.random.choice(emociones)
-
-if st.button("🎯 Nuevo desafío") or 'target_emotion' not in st.session_state:
-    st.session_state.target_emotion = generate_challenge()
-
-st.subheader("🎯 Emoción objetivo:")
-st.info(f"**{st.session_state.target_emotion.upper()}**")
-
-# Sección de entrada de texto
-st.subheader("📝 Escribe algo que exprese la emoción")
-
-user_text = st.text_area("Tu mensaje:")
-if st.button("🧠 Analizar texto"):
-    emotion, conf = analyze_emotion_from_text(user_text)
-    st.write(f"**Emoción detectada:** {emotion}")
-    st.write(f"**Confianza:** {conf:.2%}")
-    if emotion.lower() == st.session_state.target_emotion.lower():
-        st.success("¡Correcto! +10 puntos")
-        st.session_state.score += 10
-        st.session_state.challenges_completed += 1
-    else:
-        st.warning(f"Detecté '{emotion}', no coincide con '{st.session_state.target_emotion}'")
-        st.session_state.score += 2
-
-# Sección de entrada de imagen
-st.subheader("📷 Toma una foto mostrando la emoción")
-
-img = st.camera_input("Captura tu expresión facial")
-if img:
-    img_pil = Image.open(img).convert("RGB")
-    st.image(img_pil, caption="Tu imagen")
-
-    emotion, conf = analyze_emotion_from_image(img_pil)
-    st.write(f"**Expresión detectada:** {emotion}")
-    st.write(f"**Confianza:** {conf:.2%}")
-    if emotion.lower() == st.session_state.target_emotion.lower():
-        st.success("¡Perfecto! +15 puntos")
-        st.session_state.score += 15
-        st.session_state.challenges_completed += 1
-    else:
-        st.warning(f"Detecté '{emotion}', no coincide con '{st.session_state.target_emotion}'")
-        st.session_state.score += 3
-
-# Nivel y progreso
-st.subheader("🎮 Progreso del juego")
-progress = st.session_state.challenges_completed / 10
-st.progress(progress)
-if st.session_state.challenges_completed >= 10:
-    st.session_state.level += 1
-    st.session_state.challenges_completed = 0
-    st.success(f"🎉 ¡Subiste al nivel {st.session_state.level}!")
-
-st.write("---")
-st.caption("🤖 Hecho con Streamlit y modelos locales")
+            st.success(f"Emoción detectada: **{emotion.upper()}**")
+            st.write(f"Confianza: {confidence:.2%}")
+        else:
+            st.warning("No se detectó un rostro válido.")
