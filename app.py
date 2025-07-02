@@ -6,7 +6,11 @@ import time
 from textblob import TextBlob
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 import cv2
-from fer import FER # Import the FER library
+
+try:
+    from fer import FER
+except ImportError:
+    FER = None
 
 # Configuración de la página
 st.set_page_config(
@@ -26,15 +30,16 @@ def load_sentiment_analyzers():
 @st.cache_resource
 def load_fer_model():
     """Carga el modelo FER para detección de emociones."""
-    # Instanciar el detector FER
-    # Puedes ajustar la opción 'mtcnn' si tienes problemas de rendimiento
-    # o si prefieres otro detector de rostros si lo usas en un entorno muy restringido
+    if FER is None:
+        st.error("❌ No se pudo cargar el detector FER. ¿Está instalado correctamente?")
+        return None
     try:
-        detector = FER(mtcnn=True)
+        detector = FER(mtcnn=True)  # Usa mtcnn=True solo si lo tienes instalado, si no puedes dejarlo en False
         return detector
     except Exception as e:
         st.error(f"Error al cargar el modelo FER: {e}")
         return None
+
 
 @st.cache_resource
 def load_face_cascade():
