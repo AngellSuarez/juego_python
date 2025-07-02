@@ -56,21 +56,58 @@ def analyze_emotion_from_text(text):
         polarity = blob.sentiment.polarity
         subjectivity = blob.sentiment.subjectivity
         
-        # Determinar emoción basada en los scores
-        if vader_scores['compound'] >= 0.5:
-            emotion = 'joy'
-        elif vader_scores['compound'] <= -0.5:
-            emotion = 'sad'
-        elif polarity > 0.3:
+        # Palabras clave para detectar emociones específicas
+        text_lower = text.lower()
+        
+        # Palabras clave por emoción
+        emotion_keywords = {
+            'happy': ['feliz', 'alegre', 'contento', 'genial', 'fantástico', 'increíble', 'maravilloso', 'happy', 'joy', 'great', 'awesome', 'wonderful', 'amazing', 'fantastic', 'excellent', 'perfect', 'love', 'excited'],
+            'sad': ['triste', 'melancólico', 'deprimido', 'sad', 'depressed', 'melancholy', 'sorrow', 'grief', 'unhappy', 'miserable', 'dejected', 'heartbroken', 'lonely', 'blue'],
+            'angry': ['enojado', 'furioso', 'molesto', 'irritado', 'angry', 'furious', 'mad', 'irritated', 'annoyed', 'rage', 'hate', 'frustrated', 'livid', 'outraged'],
+            'fear': ['miedo', 'terror', 'asustado', 'nervioso', 'fear', 'scared', 'afraid', 'terrified', 'anxious', 'worried', 'panic', 'frightened', 'nervous'],
+            'surprise': ['sorprendido', 'asombrado', 'impresionado', 'surprise', 'shocked', 'amazed', 'astonished', 'stunned', 'wow', 'incredible', 'unbelievable'],
+            'disgust': ['asco', 'repugnante', 'asqueroso', 'disgust', 'disgusting', 'gross', 'revolting', 'nauseating', 'repulsive', 'sick']
+        }
+        
+        # Contar coincidencias de palabras clave
+        emotion_scores = {}
+        for emotion, keywords in emotion_keywords.items():
+            score = sum(1 for keyword in keywords if keyword in text_lower)
+            if score > 0:
+                emotion_scores[emotion] = score
+        
+        # Si hay palabras clave, usar la emoción con más coincidencias
+        if emotion_scores:
+            detected_emotion = max(emotion_scores, key=emotion_scores.get)
+            confidence = min(emotion_scores[detected_emotion] * 0.3 + 0.4, 1.0)
+            return detected_emotion, confidence
+        
+        # Si no hay palabras clave, usar análisis de sentimientos más sensible
+        compound = vader_scores['compound']
+        pos = vader_scores['pos']
+        neg = vader_scores['neg']
+        
+        # Umbrales más bajos para detectar emociones
+        if compound >= 0.1:  # Más sensible para positivo
+            if pos > 0.3:
+                emotion = 'happy'
+            else:
+                emotion = 'joy'
+        elif compound <= -0.1:  # Más sensible para negativo
+            if neg > 0.3:
+                emotion = 'angry'
+            else:
+                emotion = 'sad'
+        elif polarity > 0.05:  # TextBlob positivo
             emotion = 'happy'
-        elif polarity < -0.3:
-            emotion = 'angry'
-        elif subjectivity > 0.7:
+        elif polarity < -0.05:  # TextBlob negativo
+            emotion = 'sad'
+        elif subjectivity > 0.5:  # Alto contenido emocional
             emotion = 'surprise'
         else:
             emotion = 'neutral'
             
-        confidence = abs(vader_scores['compound'])
+        confidence = max(abs(compound), abs(polarity), 0.3)
         return emotion, confidence
         
     except Exception as e:
@@ -162,10 +199,35 @@ if st.session_state.game_state['user_name']:
         # Modo de juego
         if st.session_state.game_state['game_mode'] == 'text':
             st.write("### 📝 Modo Texto")
+            
+            # Ejemplos de texto por emoción
+            st.write("💡 **Ejemplos de textos por emoción:**")
+            examples = {
+                'happy': "¡Estoy súper feliz! Hoy es un día maravilloso y me siento genial.",
+                'sad': "Me siento muy triste y melancólico. Todo parece gris hoy.",
+                'angry': "¡Estoy furioso! Esto me molesta muchísimo y me da rabia.",
+                'fear': "Tengo mucho miedo. Esta situación me pone muy nervioso y ansioso.",
+                'surprise': "¡Wow! ¡Qué sorpresa tan increíble! No puedo creer lo que veo.",
+                'disgust': "Esto es asqueroso y repugnante. Me da mucho asco."
+            }
+            
+            if st.session_state.target_emotion in examples:
+                st.info(f"Ejemplo para '{st.session_state.target_emotion}': {examples[st.session_state.target_emotion]}")
+            
             user_input = st.text_area("Escribe tu respuesta:", height=100)
             
             if st.button("🧠 Analizar con IA") and user_input:
                 detected_emotion, confidence = analyze_emotion_from_text(user_input)
+                
+                # Debug info
+                with st.expander("🔍 Debug - Ver análisis detallado"):
+                    vader_scores = vader_analyzer.polarity_scores(user_input)
+                    blob = TextBlob(user_input)
+                    
+                    st.write("**VADER Scores:**")
+                    st.json(vader_scores)
+                    st.write(f"**TextBlob Polarity:** {blob.sentiment.polarity}")
+                    st.write(f"**TextBlob Subjectivity:** {blob.sentiment.subjectivity}")
                 
                 st.write("### 🤖 Análisis de IA")
                 st.write(f"**Emoción detectada:** {detected_emotion}")
