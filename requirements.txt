@@ -1,7 +1,8 @@
 streamlit
-tensorflow
-pillow
-opencv-python-headless
-vaderSentiment
-textblob
 numpy
+opencv-python-headless
+Pillow
+tensorflow
+keras
+textblob
+vaderSentiment
