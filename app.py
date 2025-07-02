@@ -61,13 +61,56 @@ def analyze_emotion_from_text(text):
         
         # Palabras clave por emoción
         emotion_keywords = {
-            'happy': ['feliz', 'alegre', 'contento', 'genial', 'fantástico', 'increíble', 'maravilloso', 'happy', 'joy', 'great', 'awesome', 'wonderful', 'amazing', 'fantastic', 'excellent', 'perfect', 'love', 'excited'],
-            'sad': ['triste', 'melancólico', 'deprimido', 'sad', 'depressed', 'melancholy', 'sorrow', 'grief', 'unhappy', 'miserable', 'dejected', 'heartbroken', 'lonely', 'blue'],
-            'angry': ['enojado', 'furioso', 'molesto', 'irritado', 'angry', 'furious', 'mad', 'irritated', 'annoyed', 'rage', 'hate', 'frustrated', 'livid', 'outraged'],
-            'fear': ['miedo', 'terror', 'asustado', 'nervioso', 'fear', 'scared', 'afraid', 'terrified', 'anxious', 'worried', 'panic', 'frightened', 'nervous'],
-            'surprise': ['sorprendido', 'asombrado', 'impresionado', 'surprise', 'shocked', 'amazed', 'astonished', 'stunned', 'wow', 'incredible', 'unbelievable'],
-            'disgust': ['asco', 'repugnante', 'asqueroso', 'disgust', 'disgusting', 'gross', 'revolting', 'nauseating', 'repulsive', 'sick']
+            'happy': [
+        'feliz', 'alegre', 'contento', 'genial', 'fantástico', 'increíble', 'maravilloso',
+        'entusiasmado', 'divertido', 'eufórico', 'satisfecho', 'afortunado', 'positivo',
+        'encantado', 'optimista', 'sonriente', 'animado', 'emocionado', 'bien', 'tranquilo',
+        'jubilo', 'placer', 'chévere', 'bacano', 'brutal', 'top', 'cool', 'chimba', 'de lujo',
+        'todo bien', 'relax', 'felipe', 'lol', 'xd', 'uwu', 'jajaja', 'jejeje', '😊', '😁', '😄', '😎',
+        'happy', 'joy', 'great', 'awesome', 'wonderful', 'amazing', 'fantastic', 'excellent',
+        'perfect', 'love', 'excited', 'fun', 'delighted', 'glad', 'yay', 'yaay', 'lmao', 'omg yes',
+        'feelin good', 'vibes', 'good vibes', 'pure joy', 'feelin great'
+    ],
+            'sad': [
+        'triste', 'melancólico', 'deprimido', 'desanimado', 'llorando', 'afligido', 'herido',
+        'vacío', 'nostálgico', 'solitario', 'dolido', 'oscuro', 'llorón', 'me quiero ir',
+        'no puedo más', 'estoy mal', 'plof', 'uff', 'snif', 'ay no', '💔', '😔', '😢', '😭', '🥺',
+        'sad', 'blue', 'depressed', 'crying', 'hurt', 'hopeless', 'heartbroken', 'feeling down',
+        'fml', 'life sucks', 'bruh', 'i’m done', 'nope', 'meh', 'not okay', 'down bad', 'ugh',
+        'lost', 'low', 'emo'
+    ],
+            'angry': [
+        'enojado', 'furioso', 'molesto', 'irritado', 'colérico', 'frustrado', 'rabioso', 'estresado',
+        'fastidiado', 'explote', 'me colme', 'me harté', 'qué rabia', 'qué bronca', 'qué jartera',
+        'ardido', 'qué mierda', 'puta vida', '😡', '🤬', '🔥', '😠',
+        'angry', 'mad', 'furious', 'pissed', 'annoyed', 'hate', 'wtf', 'fml', 'damn', 'screw this',
+        'f this', 'freakin', 'rage', 'livid', 'i swear', 'not again', 'why me', 'frick', 'this sucks',
+        'ugh hate it', 'bro what', 'stop it', 'smh'
+    ],
+            'fear': [
+        'miedo', 'terror', 'asustado', 'nervioso', 'preocupado', 'tembloroso', 'paranoico',
+        'cagado', 'me da cosa', 'uff qué miedo', 'tengo susto', 'me tiemblan las patas',
+        'ansioso', 'tenso', 'ayuda', '😰', '😱', '🥶', '😨',
+        'fear', 'scared', 'afraid', 'terrified', 'anxious', 'worried', 'panic', 'stressed',
+        'nervous', 'help', 'omg no', 'i can’t', 'pls no', 'nah fam', 'not ready', 'shaking',
+        'paranoid', 'lowkey scared', 'bro help'
+    ],
+            'surprise': [
+        'sorprendido', 'asombrado', 'impresionado', 'boquiabierto', 'anonadado', 'impactado',
+        'quedé', 'me morí', 'qué es esto', 'no puede ser', 'wtf', 'qué carajos', '😮', '😲', '🤯',
+        'surprise', 'shocked', 'omg', 'wow', 'wtf', 'holy', 'no way', 'damn', 'insane', 'bruh',
+        'jaw drop', 'deadass?', 'you kidding?', 'tf', 'mind blown', 'omg', 'unexpected', 'what',
+        'say what?', 'can’t believe'
+    ],
+            'disgust': [
+        'asco', 'asqueroso', 'repugnante', 'me dio cosa', 'guácala', 'qué feo', 'me revolvió',
+        'vomitivo', 'puaj', 'guácatela', 'qué porquería', '🤢', '🤮', '😷', 'bleh',
+        'disgust', 'gross', 'ew', 'yuck', 'nasty', 'revolting', 'sick', 'foul', 'eww', 'hell no',
+        'what is this', 'nah bro', 'hell nah', 'trash', 'i’m gonna puke', 'no thanks', 'ughhh',
+        'disgusting', 'repulsive', 'vile'
+    ]
         }
+
         
         # Contar coincidencias de palabras clave
         emotion_scores = {}
