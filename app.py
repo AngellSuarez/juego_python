@@ -17,7 +17,7 @@ def load_sentiment_analyzer():
 
 @st.cache_resource
 def load_emotion_model():
-    return joblib.load("model/emotion_model.pkl")
+    return joblib.load("model/model.pkl")
 
 vader = load_sentiment_analyzer()
 emotion_model = load_emotion_model()
