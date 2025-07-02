@@ -1,12 +1,7 @@
 streamlit
+tensorflow
+pillow
 opencv-python-headless
-transformers
-torch
-Pillow
-numpy
-textblob
 vaderSentiment
-fer
-moviepy==1.0.3
-imageio==2.9.0
-imageio-ffmpeg==0.4.5
+textblob
+numpy
