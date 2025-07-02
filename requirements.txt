@@ -1,12 +1,8 @@
 streamlit
-opencv-python
+opencv-python-headless
 transformers
 torch
-torchvision
-torchaudio
 Pillow
 numpy
-SpeechRecognition
-pyttsx3
-sounddevice
-pyaudio
+textblob
+vaderSentiment

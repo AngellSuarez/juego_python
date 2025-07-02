@@ -1,15 +1,11 @@
 import streamlit as st
-import cv2
 import numpy as np
 from PIL import Image
-import speech_recognition as sr
-import pyttsx3
-import threading
+import random
 import time
-from transformers import pipeline, AutoTokenizer, AutoModelForSequenceClassification
-import torch
-import io
-import base64
+from textblob import TextBlob
+from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+import cv2
 
 # Configuración de la página
 st.set_page_config(
@@ -20,27 +16,21 @@ st.set_page_config(
 
 # Inicialización de modelos de IA local
 @st.cache_resource
-def load_emotion_model():
-    """Carga el modelo de análisis de emociones"""
-    try:
-        # Modelo liviano para análisis de emociones en texto
-        emotion_classifier = pipeline(
-            "text-classification",
-            model="j-hartmann/emotion-english-distilroberta-base",
-            device=0 if torch.cuda.is_available() else -1
-        )
-        return emotion_classifier
-    except:
-        # Fallback a un modelo más simple
-        return pipeline("sentiment-analysis", device=-1)
+def load_sentiment_analyzers():
+    """Carga los analizadores de sentimientos"""
+    vader_analyzer = SentimentIntensityAnalyzer()
+    return vader_analyzer
 
-@st.cache_resource
+@st.cache_resource  
 def load_face_cascade():
     """Carga el clasificador de rostros de OpenCV"""
-    return cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+    try:
+        return cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+    except:
+        return None
 
 # Inicializar modelos
-emotion_model = load_emotion_model()
+vader_analyzer = load_sentiment_analyzers()
 face_cascade = load_face_cascade()
 
 # Estado del juego
@@ -56,22 +46,48 @@ if 'game_state' not in st.session_state:
 
 # Funciones auxiliares
 def analyze_emotion_from_text(text):
-    """Analiza la emoción del texto usando el modelo de IA"""
+    """Analiza la emoción del texto usando múltiples métodos de IA"""
     try:
-        result = emotion_model(text)
-        if isinstance(result, list) and len(result) > 0:
-            emotion = result[0]['label'].lower()
-            confidence = result[0]['score']
-            return emotion, confidence
-    except:
-        pass
-    return "neutral", 0.5
+        # VADER Sentiment Analysis
+        vader_scores = vader_analyzer.polarity_scores(text)
+        
+        # TextBlob Analysis
+        blob = TextBlob(text)
+        polarity = blob.sentiment.polarity
+        subjectivity = blob.sentiment.subjectivity
+        
+        # Determinar emoción basada en los scores
+        if vader_scores['compound'] >= 0.5:
+            emotion = 'joy'
+        elif vader_scores['compound'] <= -0.5:
+            emotion = 'sad'
+        elif polarity > 0.3:
+            emotion = 'happy'
+        elif polarity < -0.3:
+            emotion = 'angry'
+        elif subjectivity > 0.7:
+            emotion = 'surprise'
+        else:
+            emotion = 'neutral'
+            
+        confidence = abs(vader_scores['compound'])
+        return emotion, confidence
+        
+    except Exception as e:
+        st.error(f"Error en análisis: {e}")
+        return "neutral", 0.5
 
 def detect_faces_in_image(image):
     """Detecta rostros en la imagen"""
-    gray = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2GRAY)
-    faces = face_cascade.detectMultiScale(gray, 1.1, 4)
-    return len(faces) > 0, faces
+    try:
+        if face_cascade is None:
+            return False, []
+        gray = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2GRAY)
+        faces = face_cascade.detectMultiScale(gray, 1.1, 4)
+        return len(faces) > 0, faces
+    except Exception as e:
+        st.error(f"Error en detección facial: {e}")
+        return False, []
 
 def get_emotion_challenge():
     """Genera un desafío de emoción aleatorio"""
@@ -215,8 +231,9 @@ if st.session_state.game_state['user_name']:
             st.success(f"¡Nivel {st.session_state.game_state['level']}!")
         
         st.write("### 🧠 Modelo de IA")
-        st.info("Usando modelo local de análisis de emociones")
-        st.write("- Transformers (Hugging Face)")
+        st.info("Usando análisis de sentimientos local")
+        st.write("- VADER Sentiment Analysis")
+        st.write("- TextBlob para análisis de texto")
         st.write("- OpenCV para detección facial")
         st.write("- Procesamiento local sin envío de datos")
         
