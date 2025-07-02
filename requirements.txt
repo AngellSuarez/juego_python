@@ -6,5 +6,5 @@ Pillow
 numpy
 textblob
 vaderSentiment
-fer
 moviepy
+fer
