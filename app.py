@@ -34,7 +34,7 @@ def load_fer_model():
         st.error("❌ No se pudo cargar el detector FER. ¿Está instalado correctamente?")
         return None
     try:
-        detector = FER(mtcnn=True)  # Usa mtcnn=True solo si lo tienes instalado, si no puedes dejarlo en False
+        detector = FER(mtcnn=False)  # Usa mtcnn=True solo si lo tienes instalado, si no puedes dejarlo en False
         return detector
     except Exception as e:
         st.error(f"Error al cargar el modelo FER: {e}")
