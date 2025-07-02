@@ -6,5 +6,6 @@ Pillow
 numpy
 textblob
 vaderSentiment
+imageio-ffmpeg
 moviepy
 fer
