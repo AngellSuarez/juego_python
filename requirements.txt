@@ -1,8 +1,8 @@
 streamlit
-numpy
 opencv-python-headless
+transformers
+torch
 Pillow
+numpy
 textblob
 vaderSentiment
-scikit-learn
-joblib
